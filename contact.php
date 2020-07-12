@@ -1,11 +1,11 @@
 <?php
 
 class Contact {
-    
+
     /**
      * @var array
      */
-    // protected $request;
+    protected $result;
 
     /**
      * Constructor
@@ -18,38 +18,81 @@ class Contact {
         $email      = (string) strip_tags($request['email']);
         $message    = (string) strip_tags($request['message']);
 
-        // $this->validate($request);
+        $errors = $this->validate($name, $email, $message);
 
-        // $this->send
+        if (!empty($errors)) {
+            $this->result = [
+                'success' => false,
+                'message' => trim(implode('; ', $errors))
+            ];
+            return;
+        }
+
+        $result = $this->send($name, $email, $message);
+
+        if ($result) {
+            $this->result = [
+                'success' => true,
+                'message' => 'The message has been successfully sent to delivery'
+            ];
+        } else {
+            $this->result = [
+                'success' => false,
+                'message' => 'The message has been declined by delivery'
+            ];
+        }
     }
 
     /**
-     * Constructor
+     * Validate input data
      *
-     * @param array $request
+     * @param string $name
+     * @param string $email
+     * @param string $message
      */
-    public function validate(array $request)
+    public function validate(string $name, string $email, string $message)
     {
-        $name       = strip_tags($request['name']);
-        $email      = strip_tags($request['email']);
-        $message    = strip_tags($request['message']);
-        // todo
+        $errors = [];
+
+        if (! $name || ! $email || ! $message) {
+            $errors[] = 'Error: not enough fields has been submitted!';
+        }
+
+        return $errors;
+    }
+    
+    /**
+     * Sends an email to the site owner
+     *
+     * @param string $name
+     * @param string $email
+     * @param string $message
+     */
+    public function send(string $name, string $email, string $message)
+    {
+        $to      = 'danzino21@gmail.com';
+        $subject = 'Contact form from the danzino.com';
+        $message = "Name: $name\n\nEmail: $email\n\nMessage:\n$message";
+        $headers = 'From: danzino.com' . "\r\n" .
+            'Reply-To: danzino.com' . "\r\n" .
+            'X-Mailer: PHP/' . phpversion();
+
+        return mail($to, $subject, $message, $headers);
     }
 
     /**
-     * Constructor
+     * Returns a result of a mail operation
      *
-     * @param array $request
+     * @return array
      */
-    // public function handle(array $request)
-    // {
-    //     $name       = strip_tags($request['name']);
-    //     $email      = strip_tags($request['email']);
-    //     $message    = strip_tags($request['message']);
-    //     // todo
-    // }
+    public function getResult()
+    {
+        return $this->result;
+    }
 }
 
 if (isset($_POST['request'])) {
-    new Contact($_POST['request']);
+    $contact = new Contact($_POST['request']);
+    $result = $contact->getResult();
+    echo json_encode($result);
 }
